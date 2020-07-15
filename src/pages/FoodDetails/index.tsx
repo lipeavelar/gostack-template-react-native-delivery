@@ -73,38 +73,69 @@ const FoodDetails: React.FC = () => {
 
   useEffect(() => {
     async function loadFood(): Promise<void> {
-      // Load a specific food with extras based on routeParams id
+      const { data } = await api.get(`foods/${routeParams.id}`);
+      setFood(data);
+      setExtras(
+        data.extras.map(
+          (extra: Extra) =>
+            ({
+              ...extra,
+              quantity: 0,
+            } as Extra),
+        ),
+      );
     }
 
     loadFood();
   }, [routeParams]);
 
   function handleIncrementExtra(id: number): void {
-    // Increment extra quantity
+    const extraItem = extras.find(extra => extra.id === id);
+    if (extraItem) {
+      const extraList = extras.filter(extra => extra.id !== id);
+      extraItem.quantity += 1;
+      setExtras([...extraList, extraItem]);
+    }
   }
 
   function handleDecrementExtra(id: number): void {
-    // Decrement extra quantity
+    const extraItem = extras.find(extra => extra.id === id);
+    if (extraItem) {
+      const extraList = extras.filter(extra => extra.id !== id);
+      if (extraItem.quantity > 0) extraItem.quantity -= 1;
+      setExtras([...extraList, extraItem]);
+    }
   }
 
   function handleIncrementFood(): void {
-    // Increment food quantity
+    setFoodQuantity(foodQuantity + 1);
   }
 
   function handleDecrementFood(): void {
-    // Decrement food quantity
+    if (foodQuantity > 1) setFoodQuantity(foodQuantity - 1);
   }
 
   const toggleFavorite = useCallback(() => {
-    // Toggle if food is favorite or not
+    setIsFavorite(!isFavorite);
   }, [isFavorite, food]);
 
   const cartTotal = useMemo(() => {
-    // Calculate cartTotal
+    const totalExtras = extras
+      .map(extra => extra.quantity * extra.value)
+      .reduce((acc, val) => acc + val, 0);
+    const foodPrice = foodQuantity * food.price;
+
+    return formatValue(foodPrice + totalExtras);
   }, [extras, food, foodQuantity]);
 
   async function handleFinishOrder(): Promise<void> {
-    // Finish the order and save on the API
+    await api.post('/orders', {
+      ...food,
+      id: 0,
+      product_id: food.id,
+      quantity: foodQuantity,
+      extras,
+    });
   }
 
   // Calculate the correct icon name
